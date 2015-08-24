@@ -14,6 +14,7 @@
  */
 package org.openehr.rm.datastructure.itemstructure;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -121,6 +122,13 @@ public final class ItemTree extends ItemStructure {
     public List<Item> getItems() {
     	return items;
     }
+
+	public void addItem(Item item) {
+		if(items == null) {
+			items = new ArrayList<Item>();
+		}
+		items.add(item);
+	}
     
 	/**
 	 * Equals if two item_tree has same values

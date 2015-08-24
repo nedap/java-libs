@@ -485,6 +485,7 @@ public abstract class Locatable extends Pathable implements Settable, Cloneable 
     	Object attributeValue = getAttributeValue(obj, attributeName);
     	if(attributeValue == null) {
     		attributeValue = new ArrayList();
+			setAttributeValue(obj, attributeName, attributeValue);
     	}
     	if(attributeValue instanceof List) {
     		List parent = (List) attributeValue;
@@ -639,7 +640,7 @@ public abstract class Locatable extends Pathable implements Settable, Cloneable 
         this.uid = uid;
     }
 
-    protected void setArchetypeNodeId(String archetypeNodeId) {
+    public void setArchetypeNodeId(String archetypeNodeId) {
         this.archetypeNodeId = archetypeNodeId;
     }
 
@@ -647,7 +648,7 @@ public abstract class Locatable extends Pathable implements Settable, Cloneable 
         this.name = name;
     }
 
-    protected void setArchetypeDetails(Archetyped archetypeDetails) {
+	public void setArchetypeDetails(Archetyped archetypeDetails) {
         this.archetypeDetails = archetypeDetails;
     }
 

@@ -124,6 +124,13 @@ public final class Cluster extends Item {
     void setItems(List<Item> items) {
         this.items = items;
     }
+
+	public void addItem(Item item) {
+		if(this.items == null) {
+			this.items = new ArrayList<Item>();
+		}
+		this.items.add(item);
+	}
     // POJO end
 
 	@Override
