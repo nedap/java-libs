@@ -44,6 +44,7 @@ import org.openehr.am.archetype.Archetype;
 import org.openehr.am.archetype.constraintmodel.*;
 import org.openehr.am.archetype.constraintmodel.CAttribute.Existence;
 import org.openehr.am.archetype.constraintmodel.primitive.CString;
+import org.openehr.am.archetype.ontology.ArchetypeTerm;
 import org.openehr.am.openehrprofile.datatypes.quantity.CDvQuantity;
 import org.openehr.am.openehrprofile.datatypes.quantity.CDvQuantityItem;
 import org.openehr.am.openehrprofile.datatypes.text.CCodePhrase;
@@ -68,6 +69,7 @@ public class Flattener {
 	public Flattener() {
 		archetypeMap = new HashMap<String, Archetype>();		
 		termMap = new TermMap();
+		translator = new Translator();
 	}
 	
 	/**
@@ -153,8 +155,10 @@ public class Flattener {
 		log.debug("flattening archetyped on archetype: " + definition.getArchetypeId());
 		
 		// TODO handle template_id
-		
-		
+
+		Archetype archetype = retrieveArchetype(definition.getArchetypeId());
+		addTranslationsForRootArchetype(archetype);
+
 		if(definition instanceof COMPOSITION) {
 	
 			// only exception when parentArchetype is always not set
@@ -176,7 +180,25 @@ public class Flattener {
 			throw new FlatteningException("Unkown archetyped sub-type");
 		}
 	}
-	
+
+	private void addTranslationsForRootArchetype(Archetype archetype) {
+		if(archetype != null) {
+			Set<String> paths = archetype.physicalPaths();
+
+			for(String path:paths) {
+				for(String language:archetype.getOntology().getLanguages()) {
+					ArchetypeConstraint node = archetype.node(path);
+					if(node != null && node instanceof CObject /* this reference implementation needs too many instanceof calls */) {
+						ArchetypeTerm archetypeTerm = archetype.getOntology().termDefinition(language, ((CObject) node).getNodeId());//todo: last part of path
+						if (archetypeTerm != null) {
+							translator.addTranslation(language, path, new Translation(archetypeTerm.getText(), archetypeTerm.getDescription()));
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/*
 	 * Flatten an item
 	 */
@@ -188,10 +210,10 @@ public class Flattener {
 				item.getPath());
 		
 		Archetype archetype = retrieveArchetype(item.getArchetypeId());
-		
+
 		applyTemplateConstraints(archetype, item);
 		
-		fillArchetypeSlot(parentArchetype, archetype, item.getPath(), 
+		fillArchetypeSlot(parentArchetype, archetype, item.getPath(),
 				item.getName());
 		
 		return archetype;
@@ -202,9 +224,12 @@ public class Flattener {
 		log.debug("flattening composition on archetype: " + composition.getArchetypeId());
 		
 		Archetype archetype = retrieveArchetype(composition.getArchetypeId());
+
 		CComplexObject root = archetype.getDefinition();
-		CAttribute contentAttribute = root.getAttribute(CONTENT);		
-		
+		CAttribute contentAttribute = root.getAttribute(CONTENT);
+
+		setTranslation(archetype, root, root.path());
+
 		removeArchetypeSlots(contentAttribute);
 		
 		// handle "/content" attribute
@@ -231,7 +256,7 @@ public class Flattener {
 		// log.warn("flattening composition.context..not implemented");
 		
 		applyRules(archetype, composition.getRuleArray());
-		applyNameConstraint(archetype, archetype.getDefinition(), 
+		applyNameConstraint(archetype, archetype.getDefinition(),
 				composition.getName(), "/");
 		
 		return archetype;
@@ -270,7 +295,8 @@ public class Flattener {
 		} else {
 			throw new FlatteningException(
 					"Unexpected subtype of ContentItem: " + definition);
-		}		
+		}
+
 		return archetype;
 	}	
 	
@@ -338,9 +364,9 @@ public class Flattener {
 		applyAnnotationConstraint(archetype.getDefinition(), annotation);
 	}
 	
-	private void setPathPrefixOnCObjectTree(CObject cobj, String prefix) 
+	private void setPathPrefixOnCObjectTree(Archetype archetype, CObject cobj, String prefix)
 			throws FlatteningException {
-		
+
 		// TODO shouldn't happen
 		if(cobj == null) {
 			log.warn("null cobj encountered at setPathPrefix(): " + prefix);
@@ -354,7 +380,9 @@ public class Flattener {
 			path = prefix + path;
 		}
 		cobj.setPath(path);
-		
+
+		setTranslation(archetype, cobj, path);
+
 		if(path.endsWith(VALUE)) {
 		//	log.debug("setPathPrefixOnCObjectTree - value path: " + path);
 		}		
@@ -373,12 +401,24 @@ public class Flattener {
 						it.remove();
 						log.warn("null child encountered remove in setPathPrefix()..");
 					}
-					setPathPrefixOnCObjectTree(child, prefix);					
+					setPathPrefixOnCObjectTree(archetype, child, prefix);
 				}
 			}
 		}		
 	}
-	
+
+	private void setTranslation(Archetype archetype, CObject cobj, String path) {
+		if(archetype != null) {
+			String nodeId = cobj.getNodeId();
+			for (String language : archetype.getOntology().getLanguages()) {
+				ArchetypeTerm termDefinition = archetype.getOntology().termDefinition(language, nodeId);
+				if(termDefinition != null) {
+					translator.addTranslation(language, path, new Translation(termDefinition.getText(), termDefinition.getDescription()));
+				}
+			}
+		}
+	}
+
 	private void updatePathWithNamedNodeOnCObjectTree(CObject cobj, 
 			String nodeId, String name)	throws FlatteningException {
 
@@ -632,14 +672,14 @@ public class Flattener {
 				throw new FlatteningException("CAttribute not found at " + path);		
 			}			
 			removeArchetypeSlots(attribute);
-			
+
 			root.setNodeId(archetypeId);
 			String pathSegment = archetypeId;
 			if(name != null) {
 				checkSiblingNodeIdAndName(attribute, archetypeId, name);
 				pathSegment = namedNodeSegment(archetypeId, name);
 			}
-			setPathPrefixOnCObjectTree(root, attribute.path() + "[" + 
+			setPathPrefixOnCObjectTree(archetype, root, attribute.path() + "[" +
 					pathSegment + "]");
 			
 			attribute.addChild(root);		
@@ -1673,7 +1713,11 @@ public class Flattener {
 	
 	public TermMap getTermMap() {
 		return termMap;
-	}	
+	}
+
+	public Translator getTranslator() {
+		return translator;
+	}
 	
 	/* constant values */
 	private static final String DV_TEXT = "DV_TEXT";
@@ -1700,10 +1744,13 @@ public class Flattener {
 	private static Logger log = Logger.getLogger(Flattener.class);
 	
 	/* fields */
+	private Stack<Archetype> currentArchetype;
 	private Map<String, Archetype> archetypeMap;
 	private Map<String, TEMPLATE> templateMap;
 	private TermMap termMap;
 	private long nodeCount;
+
+	private Translator translator;
 }
 /*
  * ***** BEGIN LICENSE BLOCK ***** Version: MPL 1.1/GPL 2.0/LGPL 2.1
