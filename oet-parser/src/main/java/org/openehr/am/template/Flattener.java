@@ -116,8 +116,8 @@ public class Flattener {
 		// no need to copy templateMap
 		this.templateMap = templateMap;
 		
-		log.debug("Loaded archetype/template maps, total archetypes: " + 
-				archetypeMap.size() + ", total templates: " + 
+		log.debug("Loaded archetype/template maps, total archetypes: " +
+				archetypeMap.size() + ", total templates: " +
 				(templateMap == null ? 0 : templateMap.size()));		
 		
 		return toFlattenedArchetype(template);
@@ -186,17 +186,49 @@ public class Flattener {
 			Set<String> paths = archetype.physicalPaths();
 
 			for(String path:paths) {
+				ArchetypeConstraint node = archetype.node(path);
+				//TODO: terminologies!!!
 				for(String language:archetype.getOntology().getLanguages()) {
-					ArchetypeConstraint node = archetype.node(path);
 					if(node != null && node instanceof CObject /* this reference implementation needs too many instanceof calls */) {
+						CObject constraint = ((CObject) node);
 						ArchetypeTerm archetypeTerm = archetype.getOntology().termDefinition(language, ((CObject) node).getNodeId());//todo: last part of path
 						if (archetypeTerm != null) {
-							translator.addTranslation(language, path, new Translation(archetypeTerm.getText(), archetypeTerm.getDescription()));
+							translator.addTranslation(language, path, archetypeTerm);
+						}
+					}
+
+				}
+				addTranslationForCodedText(archetype, node);
+			}
+
+		}
+	}
+
+	private void addTranslationForCodedText(Archetype archetype, ArchetypeConstraint node) {
+		/** handle the codephrases in DVCodedText here */
+		if(node instanceof CComplexObject) {
+			for(String language:archetype.getOntology().getLanguages()) {
+				CComplexObject object = (CComplexObject) node;
+				CAttribute definingCodes = object.getAttribute("defining_code");
+				if (definingCodes != null) {
+					for (CObject possibleCodePhrase : definingCodes.getChildren()) {
+						if (possibleCodePhrase instanceof CCodePhrase) {
+							CCodePhrase codePhrase = (CCodePhrase) possibleCodePhrase;
+							if (codePhrase.getTerminologyId().name().equals("local")) {
+								if (codePhrase.getCodeList() != null) {
+									for (String code : codePhrase.getCodeList()) {
+										ArchetypeTerm archetypeTerm = archetype.getOntology().termDefinition(language, code);//todo: last part of path
+										if (archetypeTerm != null) {
+											translator.addTranslation(language, node.path(), code, archetypeTerm);
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
-		}
+        }
 	}
 
 	/*
@@ -265,7 +297,7 @@ public class Flattener {
 	private Archetype flattenContentItem(Archetype parentArchetype, 
 			ContentItem definition)	throws FlatteningException {
 		
-		log.debug("flattening content_item on archetype: " + 
+		log.debug("flattening content_item on archetype: " +
 				definition.getArchetypeId() + " on path: " + definition.getPath());
 		
 		Archetype archetype = null;
@@ -386,7 +418,8 @@ public class Flattener {
 		if(path.endsWith(VALUE)) {
 		//	log.debug("setPathPrefixOnCObjectTree - value path: " + path);
 		}		
-		
+
+		this.addTranslationForCodedText(archetype, cobj);
 		if(cobj instanceof CComplexObject) {
 			CComplexObject ccobj = (CComplexObject) cobj;
 			for(CAttribute cattr : ccobj.getAttributes()) {
@@ -413,62 +446,10 @@ public class Flattener {
 			for (String language : archetype.getOntology().getLanguages()) {
 				ArchetypeTerm termDefinition = archetype.getOntology().termDefinition(language, nodeId);
 				if(termDefinition != null) {
-					translator.addTranslation(language, path, new Translation(termDefinition.getText(), termDefinition.getDescription()));
+					translator.addTranslation(language, path, termDefinition);
 				}
 			}
 		}
-	}
-
-	private void updatePathWithNamedNodeOnCObjectTree(CObject cobj, 
-			String nodeId, String name)	throws FlatteningException {
-
-		// TODO shouldn't happen
-		if (cobj == null) {
-			log.warn("null cobj in updatePathWithNamedNodeOnCObjectTree(): " 
-					+ nodeId + "/" + name);
-			return;
-		}
-		
-		String path = cobj.path();		
-		path = replaceNodeIdWithNamedNode(path, nodeId, name);
-		cobj.setPath(path);
-		
-		//log.debug("cobj.path: " + cobj.path());
-		
-		if (cobj instanceof CComplexObject) {
-			CComplexObject ccobj = (CComplexObject) cobj;
-		
-			for (CAttribute cattr : ccobj.getAttributes()) {
-		
-				path = cattr.path();
-				path = replaceNodeIdWithNamedNode(path, nodeId, name);				
-				cattr.setPath(path);
-				
-				//log.debug("cattr.path: " + cattr.path());
-				
-				for (Iterator<CObject> it = cattr.getChildren().iterator(); it
-						.hasNext();) {
-
-					CObject child = it.next();
-					// TODO
-					if (child == null) {
-						it.remove();
-						log.warn("null child encountered remove in setPathPrefix()..");
-					}
-					updatePathWithNamedNodeOnCObjectTree(child, nodeId, name);
-				}
-			}
-		}
-	}
-	
-	private String replaceNodeIdWithNamedNode(String path, String nodeId, 
-			String name) {
-		return path.replaceFirst("\\[" + nodeId + "\\]", 
-				"\\[" + namedNodeSegment(nodeId, name) + "\\]");
-	}
-	
-	private String namedNodeSegment(String nodeId, String name) {
-		return nodeId + " and name/value='" + name + "'";
 	}
 	
 	private Archetype flattenSection(Archetype parentArchetype, 
@@ -546,8 +527,8 @@ public class Flattener {
 	 * Overwrite recursively all the nodeIds in the given cobj tree with 
 	 * incremental number starting with given count value
 	 * 
-	 * @param ccobj
-	 * @param diff
+	 * @param cobj
+	 * @param count
 	 * @return total number of nodeIds adjusted, used to update nodeId counter
 	 */
 	protected long adjustNodeIds(CObject cobj, long count) 
@@ -677,7 +658,6 @@ public class Flattener {
 			String pathSegment = archetypeId;
 			if(name != null) {
 				checkSiblingNodeIdAndName(attribute, archetypeId, name);
-				pathSegment = namedNodeSegment(archetypeId, name);
 			}
 			setPathPrefixOnCObjectTree(archetype, root, attribute.path() + "[" +
 					pathSegment + "]");
@@ -752,7 +732,7 @@ public class Flattener {
 		
 		applyTemplateConstraints(archetype, structure);
 		
-		fillArchetypeSlot(parentArchetype, archetype, structure.getPath(), 
+		fillArchetypeSlot(parentArchetype, archetype, structure.getPath(),
 				structure.getName());
 		
 		ITEM[] items = structure.getItemsArray();
@@ -805,7 +785,8 @@ public class Flattener {
 		// rewrite rule path for named nodes
 		// ASUMMING order is respected!!
 		for(Statement rule : rules) {
-			if(name != null && rule.getPath().startsWith(leadingPath)
+			log.info("RULE WITH NAME? " + rule.getName());
+			/*if(name != null && rule.getPath().startsWith(leadingPath)
 					&& rule.getPath().length() > leadingPath.length()) {
 				int len = leadingPath.length();
 				String path = rule.getPath();
@@ -815,7 +796,7 @@ public class Flattener {
 				rule.setPath(path);
 				
 				log.debug("rewrote path with named node: " + path);
-			}
+			}*/
 			applyRule(archetype, rule);
 		}
 	}
@@ -862,10 +843,10 @@ public class Flattener {
 		}	
 		
 	}	
-	
-	// TODO 
+
 	protected void applyHideOnFormConstraint(ArchetypeConstraint constraint,
 			boolean hideOnForm) {
+		constraint.setHiddenOnForm(hideOnForm);
 		return;
 	}
 	
@@ -886,7 +867,7 @@ public class Flattener {
 	 *   <Rule path="/items[at0001]" default="SNOMED-CT::258835005::mg/dygn" />	 * 
 	 * 
 	 * @param constraint
-	 * @param rule
+	 * @param defaultValue
 	 * @throws FlatteningException if rmType doesn't fit
 	 */
 	protected void applyDefaultValueConstraint(ArchetypeConstraint constraint,
@@ -1175,8 +1156,10 @@ public class Flattener {
 			cpo = CPrimitiveObject.createSingleRequired(path, cstring);
 			valueAttr.addChild(cpo);
 		}
+
+		translator.addOverridenTranslation(ccobj.path(), new ArchetypeTerm(ccobj.getNodeId(), name, name));
 		ccobj.addAttribute(nameAttr);
-		updatePathWithNamedNodeOnCObjectTree(ccobj, ccobj.getNodeId(), name);
+		//updatePathWithNamedNodeOnCObjectTree(ccobj, ccobj.getNodeId(), name);
 		archetype.updatePathNodeMapRecursively(ccobj);		
 		
 		log.debug("after setting name, cobj.path: " + ccobj.path());
@@ -1437,7 +1420,8 @@ public class Flattener {
 				terminology = value.substring(0, i);
 				code = value.substring(i + 2, j);
 				text = value.substring(j + 2);				
-				codeList.add(code);				
+				codeList.add(code);
+				translator.addTranslation(terminology, valuePath, new ArchetypeTerm(code, text, ""/* no description?!*/));
 				termMap.addTerm(terminology, code, text, valuePath);
 			}
 			
@@ -1542,7 +1526,7 @@ public class Flattener {
 					CComplexObject.createSingleRequired(valuePath, rmType);
 				cattr.addChild(child);
 			}
-			log.debug("value attribute added with total " 
+			log.debug("value attribute added with total "
 					+ cattr.getChildren().size() + "child(s)");
 		}		
 	}
@@ -1584,7 +1568,7 @@ public class Flattener {
 		String code = value.substring(i + 2, j);
 		String text = value.substring(j + 2);
 		CodePhrase codePhrase = new CodePhrase(terminology, code);
-		
+		translator.addTranslation(terminology, path, new ArchetypeTerm(code, text, "" /* no description?!*/));
 		termMap.addTerm(terminology, code, text, path);		
 		return codePhrase;
 	}

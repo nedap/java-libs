@@ -203,22 +203,22 @@ public final class Instruction extends CareEntry {
 	}
 	
     // POJO start
-    Instruction() {
+    public Instruction() {
     }
 
-	void setActivities(List<Activity> activities) {
+	public void setActivities(List<Activity> activities) {
 		this.activities = activities;
 	}
 
-	void setExpiryTime(DvDateTime expiryTime) {
+	public void setExpiryTime(DvDateTime expiryTime) {
 		this.expiryTime = expiryTime;
 	}
 
-	void setNarrative(DvText narrative) {
+	public void setNarrative(DvText narrative) {
 		this.narrative = narrative;
 	}
 
-	void setWfDefinition(DvParsable wfDefinition) {
+	public void setWfDefinition(DvParsable wfDefinition) {
 		this.wfDefinition = wfDefinition;
 	}
 	

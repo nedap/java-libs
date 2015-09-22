@@ -170,14 +170,14 @@ public final class Observation extends CareEntry {
 	}
 	
     // POJO start
-    Observation() {
+    public Observation() {
     }
 
-    void setData(History<? extends ItemStructure> data) {
+    public void setData(History<? extends ItemStructure> data) {
         this.data = data;
     }
 
-    void setState(History<? extends ItemStructure> state) {
+    public void setState(History<? extends ItemStructure> state) {
         this.state = state;
     }
     // POJO end

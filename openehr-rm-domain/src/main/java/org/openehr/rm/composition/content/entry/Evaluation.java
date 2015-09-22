@@ -130,10 +130,10 @@ public final class Evaluation extends CareEntry {
 	}
 
     // POJO start
-    Evaluation() {
+    public Evaluation() {
     }
 
-    void setData(ItemStructure data) {
+    public void setData(ItemStructure data) {
         this.data = data;
     }
     // POJO end

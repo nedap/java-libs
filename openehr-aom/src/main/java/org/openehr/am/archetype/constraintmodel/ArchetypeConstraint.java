@@ -118,7 +118,11 @@ public abstract class ArchetypeConstraint  implements Serializable{
     public boolean isHiddenOnForm() {
     	return hiddenOnForm;
     }
-    
+
+    public void setHiddenOnForm(boolean hidden) {
+        this.hiddenOnForm = hidden;
+    }
+
     public String getAnnotation() {
 		return annotation;
 	}
@@ -183,6 +187,7 @@ public abstract class ArchetypeConstraint  implements Serializable{
     // TODO experimental feature in ADL 1.5
     private boolean hiddenOnForm;    
     private String annotation;
+
 }
 
 /*
