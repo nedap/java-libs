@@ -786,6 +786,10 @@ public class Flattener {
 		// ASUMMING order is respected!!
 		for(Statement rule : rules) {
 			log.info("RULE WITH NAME? " + rule.getName());
+			if(rule.getName() != null) {
+				//TODOTODOTODO!!!!!! add path prefix!!!!!!!!!!!!!!!!!!
+				translator.addOverridenTranslation(rule.getPath(), new ArchetypeTerm("at0000"/*todo!*/, rule.getName(), ""));//TODO: don't override description?
+			}
 			/*if(name != null && rule.getPath().startsWith(leadingPath)
 					&& rule.getPath().length() > leadingPath.length()) {
 				int len = leadingPath.length();
