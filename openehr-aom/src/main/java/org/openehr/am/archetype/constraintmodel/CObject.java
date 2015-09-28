@@ -63,7 +63,7 @@ public abstract class CObject extends ArchetypeConstraint {
         this.parent = parent;
     }
     
-    protected abstract CObject copy();
+    public abstract CObject copy();
 
     /**
      * Reference model type which this node corresponds to.

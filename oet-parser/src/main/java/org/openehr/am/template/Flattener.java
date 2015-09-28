@@ -1096,7 +1096,7 @@ public class Flattener {
 	// TODO add support for name-based hybrid path
 	// At least for Rule-based name constraint, if the node doesn't
 	// exist before, a copy of the node should be created with given name
-	protected CComplexObject applyNameConstraint(Archetype archetype, 
+	protected ArchetypeConstraint applyNameConstraint(Archetype archetype,
 			ArchetypeConstraint constraint, String name, String localPath) 
 			throws FlatteningException {
 		
@@ -1105,10 +1105,10 @@ public class Flattener {
 		
 		// preconditions
 		assert(constraint instanceof CComplexObject);
-		
-		CComplexObject ccobj = (CComplexObject) constraint;	
+
+		CObject cobj = (CObject) constraint;
 		if(name == null) {
-			return ccobj;
+			return cobj;
 		}
 		
 		//String path = ccobj.path();
@@ -1120,55 +1120,60 @@ public class Flattener {
 			
 			// add a copy of the ccobj if sibling with same node_id exists
 			// this is the key to enable named-node path in template			
-			if(hasSiblingNodeWithNodeId(parent, ccobj.getNodeId())) {
-				removeUnnamedSiblingNode(archetype, parent, ccobj.getNodeId());
+			if(hasSiblingNodeWithNodeId(parent, cobj.getNodeId())) {
+				removeUnnamedSiblingNode(archetype, parent, cobj.getNodeId());
 				
-				ccobj = (CComplexObject) ccobj.copy();
-				parent.addChild(ccobj);
-				ccobj.setParent(parent);
-				checkSiblingNodeIdAndName(parent, ccobj.getNodeId(), name);
+				cobj = cobj.copy();
+				parent.addChild(cobj);
+				cobj.setParent(parent);
+				checkSiblingNodeIdAndName(parent, cobj.getNodeId(), name);
 				
 				log.debug("sibling node with same node_id added, " + name);
 			}	
 	    }	
 		
 		// TODO check physicalPath needed
-		path = ccobj.path();
+		path = cobj.path();
 		
-		log.debug("applyNameConstraint - middle ccobj.path: " + ccobj.path());
+		log.debug("applyNameConstraint - middle ccobj.path: " + cobj.path());
 		
 		// perhaps unnecessary
-		CAttribute nameAttr = ccobj.getAttribute(NAME);
-		CPrimitiveObject cpo = null;
-		
-		if(nameAttr == null) {
-			
-			CString cstring = cString(name);			
-			
-			if("/".equals(path)) {
-				path = path + NAME;
-			} else {
-				path = path+ "/" + NAME;
+		//PB: certainly unnecessary now!
+		if(cobj instanceof CComplexObject) {
+			CAttribute nameAttr = ((CComplexObject) cobj).getAttribute(NAME);
+			CPrimitiveObject cpo = null;
+
+			if(nameAttr == null) {
+
+				CString cstring = cString(name);
+
+				if("/".equals(path)) {
+					path = path + NAME;
+				} else {
+					path = path+ "/" + NAME;
+				}
+				CComplexObject nameObj = CComplexObject.createSingleRequired(path, DV_TEXT);
+				nameAttr = CSingleAttribute.createRequired(path, NAME);
+				nameAttr.addChild(nameObj);
+
+				path = path + "/" + VALUE;
+				CAttribute valueAttr = CSingleAttribute.createRequired(path, VALUE);
+				nameObj.addAttribute(valueAttr);
+				cpo = CPrimitiveObject.createSingleRequired(path, cstring);
+				valueAttr.addChild(cpo);
 			}
-			CComplexObject nameObj = CComplexObject.createSingleRequired(path, DV_TEXT);
-			nameAttr = CSingleAttribute.createRequired(path, NAME);
-			nameAttr.addChild(nameObj);
-			
-			path = path + "/" + VALUE;
-			CAttribute valueAttr = CSingleAttribute.createRequired(path, VALUE);
-			nameObj.addAttribute(valueAttr);			
-			cpo = CPrimitiveObject.createSingleRequired(path, cstring);
-			valueAttr.addChild(cpo);
+			((CComplexObject) cobj).addAttribute(nameAttr);
 		}
 
-		translator.addOverridenTranslation(ccobj.path(), new ArchetypeTerm(ccobj.getNodeId(), name, name));
-		ccobj.addAttribute(nameAttr);
+		translator.addOverridenTranslation(cobj.path(), new ArchetypeTerm(cobj.getNodeId(), name, name));
+
+
 		//updatePathWithNamedNodeOnCObjectTree(ccobj, ccobj.getNodeId(), name);
-		archetype.updatePathNodeMapRecursively(ccobj);		
+		archetype.updatePathNodeMapRecursively(cobj);
 		
-		log.debug("after setting name, cobj.path: " + ccobj.path());
+		log.debug("after setting name, cobj.path: " + cobj.path());
 		
-		return ccobj;
+		return cobj;
 	}
 	
 	private void removeUnnamedSiblingNode(Archetype archetype,
