@@ -62,6 +62,13 @@ public class Translator {
         }
 
         Map<String, ArchetypeTerm> codeToTranslation = languageToCodes.get(path);
+        if(codeToTranslation == null) {
+            for(String pathFromTranslation:languageToCodes.keySet()) {
+                if(pathFromTranslation.startsWith(path)) {
+                    return languageToCodes.get(pathFromTranslation).get(code);
+                }
+            }
+        }
         return codeToTranslation == null ? null : codeToTranslation.get(code);
     }
 
