@@ -2,7 +2,7 @@
 
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-	<groupId>openehr</groupId>
+	<groupId>openehr.nedap</groupId>
 		<artifactId>ref_impl_java</artifactId>
 		<version>1.0.14-SNAPSHOT</version>
 	</parent>
@@ -19,48 +19,48 @@
 	
 	<dependencies>
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>openehr-rm-core</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		
 		<!-- due to XPathUtil, should be removed once it's relocated.. -->
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>openehr-aom</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		
 		<!-- due to XPathUtil, should be removed once it's relocated.. -->
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>adl-parser</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		
 		
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>openehr-rm-domain</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>mini-termserv</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>measure-serv</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>rm-builder</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>openehr</groupId>
+			<groupId>openehr.nedap</groupId>
 			<artifactId>dadl-parser</artifactId>
 			<version>${project.version}</version>			
 		</dependency>

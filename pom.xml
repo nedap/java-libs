@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>openehr</groupId>
+  <groupId>openehr.nedap</groupId>
   <artifactId>ref_impl_java</artifactId>
   <packaging>pom</packaging>
   <version>1.0.14-SNAPSHOT</version>
@@ -11,11 +11,14 @@
   </organization>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <artifactory.repository.url>https://nedap.artifactoryonline.com/nedap</artifactory.repository.url>
   </properties>
-  <scm>
-    <developerConnection>scm:git:ssh://git@css-cds-3:7999/cds/ref_impl_java.git</developerConnection>
-    <tag>HEAD</tag>
-  </scm>
+    <scm>
+        <connection>scm:git:https://github.com/nedap/penehr-java-libs.git</connection>
+        <url>https://github.com/nedap/openehr-java-libs</url>
+        <developerConnection>scm:git:git@github.com:nedap/openehr-java-libs.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
   <build>
     <plugins>
       <plugin>
@@ -62,6 +65,10 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
         <version>2.5</version>
+        <configuration>
+            <goals>deploy</goals>
+            <tagNameFormat>v@{project.version}</tagNameFormat>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -106,16 +113,16 @@
     <module>rm-skeleton</module>
     <module>archetype-validator</module>
   </modules>
-  <distributionManagement>
-    <repository>
-      <id>repo.cambio.se_releases</id>
-      <name>releases</name>
-      <url>http://repo.cambio.se/content/repositories/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>repo.cambio.se_snapshots</id>
-      <name>snapshots</name>
-      <url>http://repo.cambio.se/content/repositories/snapshots</url>
-    </snapshotRepository>
+ <distributionManagement>
+      <repository>
+          <uniqueVersion>false</uniqueVersion>
+          <id>nedap.artifactoryonline.com</id>
+          <url>${artifactory.repository.url}/ext-releases-local</url>
+      </repository>
+      <snapshotRepository>
+          <uniqueVersion>true</uniqueVersion>
+          <id>nedap-snapshots.artifactoryonline.com</id>
+          <url>${artifactory.repository.url}/ext-snapshots-local</url>
+      </snapshotRepository>
   </distributionManagement>
 </project>

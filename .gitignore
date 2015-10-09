@@ -1,2 +1,3 @@
 *.iml
+*.releaseBackup
 target/
