@@ -14,11 +14,12 @@ definition
 invariant
     test_string_matches_relative: data/items[at0000] matches { "jan" }
     test_very_basic_arithmetic: 2 > 3
-    test_slightly_less_basic_arithmetic: 2 > 3 + 5
+    test_slightly_less_basic_arithmetic: 2 > 3 + 5 * 6^2
     test_slightly_less_basic_arithmetic_2: 2 + 3 > 3 + 5 + /items[at0002]
     test_strange_boolean: true or false
     test_string_absolute_adl: /items[at0000] > /items[at0002]
-    test_string_absolute_adl_complicated: /items[at0000] > /items[at0002] -- implies exist /items[at0003]
+    test_string_absolute_adl_complicated: /items[at0000] > /items[at0002] implies exist /items[at0003]
+    -- test_stupid_boolean: not true and not false
 
 
 ontology

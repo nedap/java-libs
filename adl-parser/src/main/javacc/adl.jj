@@ -2531,10 +2531,90 @@ String matches() :
 }
 }
 
-/* ----------------------- expressions ----------------------- */
 ExpressionItem boolean_expression() :
+{//TODO: this is NOT the correct place for a not. This should be at the bottom, or you can use only one
+  ExpressionItem item = null;
+  ExpressionItem item2 = null;
+  boolean precedenceOverridden = false; // TODO
+}
+{
+  ( item = boolean_not_expression()
+| <SYM_NOT> item = boolean_not_expression() {return new ExpressionUnaryOperator(ExpressionItem.BOOLEAN, OperatorKind.OP_NOT, precedenceOverridden, item);}
+)  {
+  return item;
+  }
+}
+
+ExpressionItem boolean_not_expression() :
 {
   ExpressionItem item = null;
+  ExpressionItem item2 = null;
+  boolean precedenceOverridden = false; // TODO
+}
+{ item = boolean_expression2()
+  (<SYM_OR> item2=boolean_expression2()
+  {
+    item = new ExpressionBinaryOperator(ExpressionItem.BOOLEAN, OperatorKind.OP_OR, precedenceOverridden, item, item2);
+  })*
+  {
+  return item;
+  }
+}
+
+ExpressionItem boolean_expression2() :
+{
+  ExpressionItem item = null;
+  ExpressionItem item2 = null;
+  boolean precedenceOverridden = false; // TODO
+}
+{ item = boolean_expression3()
+  (<SYM_AND> item2=boolean_expression3()
+  {
+    item = new ExpressionBinaryOperator(ExpressionItem.BOOLEAN, OperatorKind.OP_AND, precedenceOverridden, item, item2);
+  })*
+  {
+  return item;
+  }
+}
+
+ExpressionItem boolean_expression3() :
+{
+  ExpressionItem item = null;
+  ExpressionItem item2 = null;
+  boolean precedenceOverridden = false; // TODO
+}
+{ item = boolean_expression4()
+  (<SYM_XOR> item2=boolean_expression4()
+  {
+    item = new ExpressionBinaryOperator(ExpressionItem.BOOLEAN, OperatorKind.OP_XOR, precedenceOverridden, item, item2);
+  })*
+  {
+  return item;
+  }
+}
+
+ExpressionItem boolean_expression4() :
+{
+  ExpressionItem item = null;
+  ExpressionItem item2 = null;
+  boolean precedenceOverridden = false; // TODO
+}
+{ item = boolean_sub_expression()
+  (<SYM_IMPLIES> item2=boolean_sub_expression()
+  {
+    item = new ExpressionBinaryOperator(ExpressionItem.BOOLEAN, OperatorKind.OP_IMPLIES, precedenceOverridden, item, item2);
+  })*
+  {
+  return item;
+  }
+}
+
+/* ----------------------- expressions ----------------------- */
+ExpressionItem boolean_sub_expression() :
+{
+  ExpressionItem item = null;
+  ExpressionItem itemLeft = null;
+  ExpressionItem itemRight = null;
 }
 {
 (
@@ -2591,12 +2671,7 @@ ExpressionItem boolean_node() :
   					OperatorKind.OP_MATCHES, false, item, item2);
   }
 |
-  <SYM_NOT> item = boolean_expression()
-  {
-  	ret = new ExpressionUnaryOperator(ExpressionItem.BOOLEAN,
-  		OperatorKind.OP_NOT, precedenceOverridden, item);
-  }
-|
+
   LOOKAHEAD( 3 )
   item = arithmetic_expression()
   (
@@ -2622,25 +2697,6 @@ ExpressionItem boolean_node() :
   {
   	ret = new ExpressionBinaryOperator(ExpressionItem.BOOLEAN, op, false, item, item2);
   }
-|
-  LOOKAHEAD( 3 )
-  item = boolean_leaf()//TODO: this has to be a node, but that makes a left recursion
-  (
-	  (
-	    <SYM_AND>
-	    { op = OperatorKind.OP_AND; }
-	  |
-	    <SYM_OR>
-	    { op = OperatorKind.OP_OR; }
-	  |
-	    <SYM_XOR>
-	    { op = OperatorKind.OP_XOR; }
-	  |
-	    <SYM_IMPLIES>
-	    { op = OperatorKind.OP_IMPLIES; }
-	  )
-	  item2 = boolean_expression()
-  )
   {
   	if(item2 == null) {
   		ret = item;
