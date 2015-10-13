@@ -26,6 +26,9 @@
 				<version>2.6</version>
 				<configuration>
 					<packageName>se.acode.openehr.parser</packageName>
+					<debugParser>false</debugParser>
+					<debugLookAhead>false</debugLookAhead>
+					<debugTokenManager>false</debugTokenManager>
 				</configuration>
 				<executions>
 					<execution>

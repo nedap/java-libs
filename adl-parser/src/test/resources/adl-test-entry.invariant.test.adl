@@ -1,0 +1,47 @@
+
+archetype (adl_version=1.4)
+    adl-test-CLUSTER.small.draft
+
+concept
+    [at0000]
+
+language
+    original_language = <[ISO_639-1::en]>
+
+definition
+     CLUSTER[at0000] occurrences matches {0..*} matches { * }
+
+invariant
+    test_string_matches_relative: data/items[at0000] matches { "jan" }
+    test_very_basic_arithmetic: 2 > 3
+    test_slightly_less_basic_arithmetic: 2 > 3 + 5
+    test_slightly_less_basic_arithmetic_2: 2 + 3 > 3 + 5 + /items[at0002]
+    test_strange_boolean: true or false
+    test_string_absolute_adl: /items[at0000] > /items[at0002]
+    test_string_absolute_adl_complicated: /items[at0000] > /items[at0002] -- implies exist /items[at0003]
+
+
+ontology
+    term_definitions = <
+        ["en"] = <
+            items = <
+                ["at0000"] = <
+                    text = <"some cluster">
+                    description = <"some cluster">
+
+                >
+                ["at0006"] = <
+                    text = <"some element">
+                    description = <"some element">
+
+                >
+                ["at0007"] = <
+                    text = <"optional text">
+                    description = <"optional text">
+
+                >
+            >
+        >
+    >
+
+

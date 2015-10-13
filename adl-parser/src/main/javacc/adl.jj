@@ -313,7 +313,7 @@ PARSER_END(ADLParser)
  
 }
 
-< CADL, USE_NODE > TOKEN [IGNORE_CASE]: /* KEYWORDS - cADL */
+< CADL, USE_NODE, INVARIANT > TOKEN [IGNORE_CASE]: /* KEYWORDS - cADL */
 {
   < SYM_THEN: "then">
 | < SYM_ELSE: "else">
@@ -330,8 +330,7 @@ PARSER_END(ADLParser)
 | < SYM_ORDERED: "ordered">
 | < SYM_UNORDERED: "unordered">
 | < SYM_UNIQUE: "unique">
-| < SYM_MATCHES: "matches" | "is_in">
-| < SYM_INVARIANT: "invariant">
+| < SYM_INVARIANT: "invariant"> : INVARIANT
 | < SYM_USE_NODE: "use_node"> : USE_NODE
 | < SYM_ALLOW_ARCHETYPE: "allow_archetype" | "use_archetype">
 | < SYM_INCLUDE: "include">
@@ -340,6 +339,17 @@ PARSER_END(ADLParser)
 | < SYM_END_CBLOCK: "}">
 | < SYM_C_DV_QUANTITY: "c_dv_quantity" >: DOMAIN_TYPE_C_QUANTITY
 | < SYM_ASSUMED_VALUE: "assumed_value">
+}
+< CADL, USE_NODE > TOKEN [IGNORE_CASE]:
+{
+  < SYM_MATCHES: "matches" | "is_in">
+}
+
+< INVARIANT > TOKEN [IGNORE_CASE]:
+{
+  < SYM_MATCHES_2: "matches" | "is_in"> : INVARIANT_REGEXP
+  |
+  < V_ABSOLUTE_PATH_2: "/"<PATH_SEGMENT>("/"<PATH_SEGMENT>)* >
 }
 
 < DOMAIN_TYPE_C_QUANTITY > TOKEN [IGNORE_CASE]:
@@ -526,14 +536,7 @@ PARSER_END(ADLParser)
 
 /* ----------------------- TOKEN - cADL ---------------------------- */
 
-< CADL > TOKEN: /* VALUES - cADL */
-{
-  < V_REGEXP: (["=","!"]"~ ")? (
-  ( "/"(~["\n","\r"])*"/" 
-  | "^"(~["^","\n","\r"])*"^")) >
-}
-
-< CADL, USE_NODE > TOKEN: /* VALUES - cADL */
+< CADL, USE_NODE, INVARIANT > TOKEN: /* VALUES - cADL */
 {
   < V_ISO8601_DATE_CONSTRAINT_PATTERN: (<YY>){4}"-"<MMQX_2>"-"<DDQX_2> >
 |
@@ -562,13 +565,32 @@ PARSER_END(ADLParser)
 |
  < #PATH_SEGMENT: <V_ATTRIBUTE_IDENTIFIER>(<V_LOCAL_TERM_CODE_REF>)? >
 |
-  < V_RELATIVE_PATH: <PATH_SEGMENT> ( "/" <PATH_SEGMENT> )* >      
-| 
-  < V_ABSOLUTE_PATH: "/"<PATH_SEGMENT>("/"<PATH_SEGMENT>)* > : CADL
+  < V_RELATIVE_PATH: <PATH_SEGMENT> ( "/" <PATH_SEGMENT> )* >
+}
+
+< CADL > TOKEN: /* VALUES - cADL */
+{
+  < V_REGEXP: (["=","!"]"~ ")? (
+  ( "/"(~["\n","\r"])*"/"
+  | "^"(~["^","\n","\r"])*"^")) >
+}
+<CADL, USE_NODE> TOKEN:
+{
+      < V_ABSOLUTE_PATH: "/"<PATH_SEGMENT>("/"<PATH_SEGMENT>)* > : CADL
 }
 
 
-<ONTOLOGY> TOKEN : /* URL per RFC 1738 Section 5 */
+
+< INVARIANT_REGEXP > TOKEN :
+{
+ < V_INVARIANT_REGEXP: (["=","!"]"~ ")? (
+   ( "/"(~["\n","\r"])*"/"
+   | "^"(~["^","\n","\r"])*"^")) > : INVARIANT
+ | < SYM_INVARIANT_START_CBLOCK: "{">
+ |  < SYM_INVARIANT_END_CBLOCK: "}"> : INVARIANT
+}
+
+< ONTOLOGY > TOKEN : /* URL per RFC 1738 Section 5 */
 {
   < URL : <httpurl> | <ftpurl> | <newsurl> | <nntpurl> | <telneturl> | <gopherurl> | <waisurl> | <mailtourl> | <fileurl> | <prosperourl> | <otherurl> >
 | < #genericurl : <scheme> ":" <schemepart> >
@@ -703,7 +725,12 @@ Archetype archetype() throws Exception :
 
   definition = arch_definition()
 
+  [ invariants = c_invariants() ]
+
   ontology = arch_ontology()
+
+
+
   <EOF>
 
   {
@@ -2492,18 +2519,31 @@ Set c_invariants() :
   { return set; }
 }
 
+String matches() :
+{
+  String result;
+}
+{
+(
+  result = <SYM_MATCHES>.image | result = <SYM_MATCHES_2>.image
+)
+{ return result;
+}
+}
+
 /* ----------------------- expressions ----------------------- */
 ExpressionItem boolean_expression() :
 {
   ExpressionItem item = null;
 }
 {
-  LOOKAHEAD( 2 )
-  item = boolean_leaf()
-|
+(
   LOOKAHEAD( 2 )
   item = boolean_node()
-
+|
+  LOOKAHEAD( 2 )
+  item = boolean_leaf()
+)
   { return item; }
 }
 
@@ -2529,9 +2569,13 @@ ExpressionItem boolean_node() :
   }
 |
   LOOKAHEAD( 2 )
-  attrId = relative_path() <SYM_MATCHES>
+  attrId = relative_path() matches()
                  (
-                   <SYM_START_CBLOCK> cp = c_primitive() <SYM_END_CBLOCK>
+                   (<SYM_START_CBLOCK> cp = c_primitive() <SYM_END_CBLOCK>
+                   |
+                   <SYM_INVARIANT_START_CBLOCK> cp = c_primitive() <SYM_INVARIANT_END_CBLOCK>
+                   )
+
                    { item2 = new ExpressionLeaf("C_"+cp.getType().toUpperCase(), cp,  //SG 2013-01-31: Need to add "C_" because it is a C_* constraint pattern here, with the type usually being displayed in upper case
                    				ExpressionLeaf.ReferenceType.CONSTRAINT);  } //SG 2013-01-31: instead of CONSTANT, which is not correct, at least not for archetype slots according to spec.
                  |
@@ -2576,11 +2620,11 @@ ExpressionItem boolean_node() :
   )
   item2 = arithmetic_expression()
   {
-  	ret = new ExpressionBinaryOperator(item.getType(), op, false, item, item2);
+  	ret = new ExpressionBinaryOperator(ExpressionItem.BOOLEAN, op, false, item, item2);
   }
 |
   LOOKAHEAD( 3 )
-  item = boolean_leaf()
+  item = boolean_leaf()//TODO: this has to be a node, but that makes a left recursion
   (
 	  (
 	    <SYM_AND>
@@ -2614,7 +2658,7 @@ ExpressionItem boolean_leaf() :
   ExpressionItem item = null;
 }
 {
-
+(
   LOOKAHEAD( 3 )
   "(" item = boolean_expression() ")"
 |
@@ -2623,7 +2667,7 @@ ExpressionItem boolean_leaf() :
 |
   <SYM_FALSE>
   { item = ExpressionLeaf.booleanConstant(false); }
-
+)
   { return item; }
 }
 
@@ -2632,11 +2676,13 @@ ExpressionItem arithmetic_expression() :
   ExpressionItem item = null;
 }
 {
-  LOOKAHEAD( 3 )
-  item = arithmetic_leaf()
-  |
+(
   LOOKAHEAD( 3 )
   item = arithmetic_node()
+  |
+  LOOKAHEAD( 3 )
+  item = arithmetic_leaf()
+  )
   { return item; }
 }
 
@@ -2687,6 +2733,7 @@ ExpressionItem arithmetic_leaf() :
   String str = null;
 }
 {
+(
   "(" item = arithmetic_expression() ")"
 |
   t = <V_INTEGER>
@@ -2705,8 +2752,10 @@ ExpressionItem arithmetic_leaf() :
   {
   	item = ExpressionLeaf.stringConstant(str);
   }
+  )
   {  return item; }
 }
+
 
 
 
@@ -3352,7 +3401,13 @@ String absolute_path() :
   Token t;
 }
 {
-  t = <V_ABSOLUTE_PATH>
+
+(
+    t = <V_ABSOLUTE_PATH>
+    |
+    t = <V_ABSOLUTE_PATH_2>
+    )
+
   { return t.image; }
 }
 
