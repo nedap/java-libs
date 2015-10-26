@@ -48,7 +48,7 @@ public final class ArchetypeID extends ObjectID {
     private void loadValue(String value) {
         StringTokenizer tokens = new StringTokenizer(value,
                 AXIS_SEPARATOR);
-        if (tokens.countTokens() != 3) {
+        if (tokens.countTokens() < 3) {
             throw new IllegalArgumentException("bad format, wrong number of \"" +
                     AXIS_SEPARATOR
                     + "\", " + value);
