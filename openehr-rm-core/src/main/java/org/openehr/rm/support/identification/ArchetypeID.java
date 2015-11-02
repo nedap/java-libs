@@ -373,7 +373,7 @@ public final class ArchetypeID extends ObjectID {
     private static final String SECTION_SEPARATOR = "-";
 
     private static Pattern NAME_PATTERN =
-            Pattern.compile("[a-zA-Z][a-zA-Z0-9()_/%$#&]*");
+            Pattern.compile("[a-zA-Z0-9][a-zA-Z0-9()_/%$#&]*");
     private static Pattern VERSION_PATTERN =
             Pattern.compile("[a-zA-Z0-9]+");
 
